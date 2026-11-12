@@ -1,0 +1,244 @@
+name: Product38 exact candidate native validation
+
+on:
+  push:
+    branches: [codex/validate-patch-update-source-mapping]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CANDIDATE_COMMIT: 158e8e38773d58d104ba70dd34b41a6f597b41bc
+  PERCY_ENABLE: '0'
+
+jobs:
+  build-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout reviewed validation packet
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          path: packet
+          persist-credentials: false
+      - name: Checkout the exact source candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: peterolkhov/dash
+          ref: ${{ env.CANDIDATE_COMMIT }}
+          fetch-depth: 2
+          path: upstream
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Set up the actual before-proof Chrome version and matching driver
+        id: chrome
+        uses: browser-actions/setup-chrome@c785b87e244131f27c9f19c1a33e2ead956ab7ce
+        with:
+          chrome-version: '157.0.8103.78'
+          install-chromedriver: true
+          install-dependencies: true
+      - name: Install native dependencies in an activated environment
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m venv .venv
+          source .venv/bin/activate
+          python "$GITHUB_WORKSPACE/packet/.diagnostic/product38/guard_candidate.py" candidate
+          python -m pip install --upgrade pip wheel
+          python -m pip install 'setuptools<80.0.0'
+          python -m pip install -e '.[dev,ci,testing,diskcache]'
+          npm ci
+      - name: Full official Node24 and Python3.12 build
+        working-directory: upstream
+        shell: bash
+        env:
+          PRODUCT38_GUARD_IMPORTS: '1'
+        run: |
+          set -euo pipefail
+          source .venv/bin/activate
+          npm run build
+          python "$GITHUB_WORKSPACE/packet/.diagnostic/product38/guard_candidate.py" candidate
+      - name: Native RED with only the original owning implementation restored
+        working-directory: upstream
+        shell: bash
+        env:
+          PRODUCT38_GUARD_IMPORTS: '1'
+          DASH_TEST_CHROMEPATH: ${{ steps.chrome.outputs.chrome-path }}
+          PRODUCT38_CHROMEDRIVER: ${{ steps.chrome.outputs.chromedriver-path }}
+        run: |
+          set -euo pipefail
+          source .venv/bin/activate
+          packet="$GITHUB_WORKSPACE/packet/.diagnostic/product38"
+          evidence="$GITHUB_WORKSPACE/evidence"
+          mkdir -p "$evidence"
+          trap 'git show "$CANDIDATE_COMMIT:dash/_patch.py" > dash/_patch.py' EXIT
+          git show 'b5a33c5b9191bef976e352b9feca14eaf93c9b7a:dash/_patch.py' > dash/_patch.py
+          python "$packet/guard_candidate.py" red
+          python --version
+          node --version
+          npm --version
+          "$DASH_TEST_CHROMEPATH" --version
+          "$PRODUCT38_CHROMEDRIVER" --version
+          set +e
+          python -m pytest "$packet/test_patch_update_before.py" -c pytest.ini --headless --webdriver Chrome --nopercyfinalize -vv -s --tb=long --junitxml="$evidence/public-red.xml" 2>&1 | tee "$evidence/public-red.log"
+          test_exit=${PIPESTATUS[0]}
+          set -e
+          printf '%s\n' "$test_exit" > "$evidence/public-red-exit.txt"
+          python "$packet/verify_before_results.py" "$evidence/public-red.xml" "$evidence/public-red.log" "$evidence/public-red-exit.txt"
+          set +e
+          python -m pytest tests/unit/test_patch.py::test_pat022_patch_update_shared_mapping tests/integration/test_patch.py::test_pch008_patch_update_shared_mapping --headless --webdriver Chrome --nopercyfinalize -vv -s --tb=long --junitxml="$evidence/permanent-red.xml" 2>&1 | tee "$evidence/permanent-red.log"
+          test_exit=${PIPESTATUS[0]}
+          set -e
+          printf '%s\n' "$test_exit" > "$evidence/permanent-red-exit.txt"
+          python "$packet/verify_results.py" permanent-red "$evidence/permanent-red.xml" "$evidence/permanent-red-exit.txt"
+          python "$packet/guard_candidate.py" red
+      - name: Native GREEN with the same six public cases and permanent regressions
+        working-directory: upstream
+        shell: bash
+        env:
+          PRODUCT38_GUARD_IMPORTS: '1'
+          DASH_TEST_CHROMEPATH: ${{ steps.chrome.outputs.chrome-path }}
+        run: |
+          set -euo pipefail
+          source .venv/bin/activate
+          packet="$GITHUB_WORKSPACE/packet/.diagnostic/product38"
+          evidence="$GITHUB_WORKSPACE/evidence"
+          python "$packet/guard_candidate.py" candidate
+          set +e
+          python -m pytest "$packet/test_patch_update_before.py" -c pytest.ini --headless --webdriver Chrome --nopercyfinalize -vv -s --tb=long --junitxml="$evidence/public-green.xml" 2>&1 | tee "$evidence/public-green.log"
+          test_exit=${PIPESTATUS[0]}
+          set -e
+          printf '%s\n' "$test_exit" > "$evidence/public-green-exit.txt"
+          python "$packet/verify_results.py" public-green "$evidence/public-green.xml" "$evidence/public-green-exit.txt"
+          set +e
+          python -m pytest tests/unit/test_patch.py::test_pat022_patch_update_shared_mapping tests/integration/test_patch.py::test_pch008_patch_update_shared_mapping --headless --webdriver Chrome --nopercyfinalize -vv -s --tb=long --junitxml="$evidence/permanent-green.xml" 2>&1 | tee "$evidence/permanent-green.log"
+          test_exit=${PIPESTATUS[0]}
+          set -e
+          printf '%s\n' "$test_exit" > "$evidence/permanent-green-exit.txt"
+          python "$packet/verify_results.py" permanent-green "$evidence/permanent-green.xml" "$evidence/permanent-green-exit.txt"
+          python "$packet/guard_candidate.py" candidate
+      - name: Run the specific permanent integration file and focused unit file
+        working-directory: upstream
+        shell: bash
+        env:
+          PRODUCT38_GUARD_IMPORTS: '1'
+          DASH_TEST_CHROMEPATH: ${{ steps.chrome.outputs.chrome-path }}
+        run: |
+          set -euo pipefail
+          source .venv/bin/activate
+          python -m pytest tests/unit/test_patch.py tests/integration/test_patch.py --headless --webdriver Chrome --nopercyfinalize -vv -s --tb=long
+          python "$GITHUB_WORKSPACE/packet/.diagnostic/product38/guard_candidate.py" candidate
+      - name: Final exact native source receipt
+        if: always()
+        working-directory: upstream
+        shell: bash
+        env:
+          PRODUCT38_GUARD_IMPORTS: '1'
+        run: |
+          set -euo pipefail
+          source .venv/bin/activate
+          python "$GITHUB_WORKSPACE/packet/.diagnostic/product38/guard_candidate.py" candidate
+
+  lint-unit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.14']
+    steps:
+      - name: Checkout reviewed validation packet
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          path: packet
+          persist-credentials: false
+      - name: Checkout the exact source candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: peterolkhov/dash
+          ref: ${{ env.CANDIDATE_COMMIT }}
+          fetch-depth: 2
+          path: upstream
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Install and build native assets using official build Python
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m venv .venv
+          source .venv/bin/activate
+          python "$GITHUB_WORKSPACE/packet/.diagnostic/product38/guard_candidate.py" candidate
+          python -m pip install --upgrade pip wheel
+          python -m pip install 'setuptools<80.0.0'
+          python -m pip install -e '.[dev,ci,testing,diskcache]'
+          npm ci
+          npm run build
+          mv .venv .venv-build
+      - name: Set up the official unit matrix Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install native matrix dependencies in the required activated environment
+        working-directory: upstream
+        shell: bash
+        env:
+          PRODUCT38_GUARD_IMPORTS: '1'
+        run: |
+          set -euo pipefail
+          python -m venv .venv
+          source .venv/bin/activate
+          python -m pip install --upgrade pip wheel
+          python -m pip install 'setuptools<80.0.0'
+          python -m pip install -e '.[dev,ci,testing,diskcache]'
+          python "$GITHUB_WORKSPACE/packet/.diagnostic/product38/guard_candidate.py" candidate
+          python --version
+          node --version
+          npm --version
+      - name: Install native renderer unit dependencies
+        working-directory: upstream/dash/dash-renderer
+        run: npm ci
+      - name: Set up the upstream virtual display
+        uses: ./upstream/.github/actions/setup-virtual-display
+      - name: Run all official native lint gates on Python3.10
+        if: matrix.python-version == '3.10'
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          source .venv/bin/activate
+          npm run lint
+      - name: Run the full official unit command on the matrix Python
+        working-directory: upstream
+        shell: bash
+        env:
+          PRODUCT38_GUARD_IMPORTS: '1'
+        run: |
+          set -euo pipefail
+          source .venv/bin/activate
+          npm run citest.unit
+          python "$GITHUB_WORKSPACE/packet/.diagnostic/product38/guard_candidate.py" candidate
+      - name: Final exact matrix source receipt
+        if: always()
+        working-directory: upstream
+        shell: bash
+        env:
+          PRODUCT38_GUARD_IMPORTS: '1'
+        run: |
+          set -euo pipefail
+          source .venv/bin/activate
+          python "$GITHUB_WORKSPACE/packet/.diagnostic/product38/guard_candidate.py" candidate

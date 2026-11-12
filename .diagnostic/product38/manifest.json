@@ -1,0 +1,99 @@
+{
+  "base_pin": "b5a33c5b9191bef976e352b9feca14eaf93c9b7a",
+  "target_branch": "dev",
+  "observed_at_utc": "2026-11-12T01:04:39.888448+00:00",
+  "candidate_commit": "158e8e38773d58d104ba70dd34b41a6f597b41bc",
+  "validation_branch": "codex/validate-patch-update-source-mapping",
+  "sources": [
+    {
+      "path": "dash/_patch.py",
+      "original_git_blob": "14719e01fe960f022ceb93e3645bfce29b1f8c24",
+      "original_sha256": "411dd77fc9f93858c8ffa56c87117f8aaf1166e908baee48c478a0b5fac08ea6",
+      "after_git_blob": "15eefa6214b6c0ce25970be49405c42d46cecfe2",
+      "after_sha256": "cf7b0c03d11e88bed7de599ab4cd1832e2daaccd250e1f5483e04ee2963b61a6",
+      "original_bytes": 5652,
+      "after_bytes": 5658
+    },
+    {
+      "path": "tests/unit/test_patch.py",
+      "original_git_blob": "c3298f64bf8cb8cda5d6df07ece433c95b8209ad",
+      "original_sha256": "742f54c41b31ae1e0e88682d99e13f4f7387e5082bbfe548bbc06d4c35423152",
+      "after_git_blob": "cc572ea2d346a3c91daf8f112e3b7e6e5cb7c93b",
+      "after_sha256": "802515a96d80340dcc68cef05dcd84abd006d8b0cb9448e374b99042ddf1de6a",
+      "original_bytes": 5286,
+      "after_bytes": 7135
+    },
+    {
+      "path": "tests/integration/test_patch.py",
+      "original_git_blob": "28cfd09f9b7cbb9cb1c02f580508a31d2681fa0a",
+      "original_sha256": "e592aec0fead2bca9e347858a116321e7c30c74694f99fe1c7525ec51569d0ec",
+      "after_git_blob": "da5ff9bf3c03c7f8827770246bfd789f1694c6c5",
+      "after_sha256": "646462fc13e8745af980a5f511d1cb4bca5aeff7e2054531f5e240fed180eed7",
+      "original_bytes": 23311,
+      "after_bytes": 25000
+    }
+  ],
+  "unchanged_critical_sources": [
+    {
+      "path": "dash/_utils.py",
+      "git_blob": "3a3f6ab4d62532d5f8bbb8e0ac2863612d9bbec5",
+      "sha256": "a3775d48ce2ff5a794e3fb20dbb89af02e34405adf0ac84f6671809734857576"
+    },
+    {
+      "path": "dash/_callback.py",
+      "git_blob": "f07741e5f11a9056c8a28c36c8cf7e0cf130db54",
+      "sha256": "2de757065345628ea4a4204d5babc713793f5b1f666adb9763b943752916b9fb"
+    },
+    {
+      "path": "dash/dash-renderer/src/actions/patch.ts",
+      "git_blob": "883735a3f9edc7e0ca91471d57675183d7eef850",
+      "sha256": "1ad448cbd05f80d3095b63dc259b34b6e820584fe0bbbe8feccbb249a75afa4f"
+    },
+    {
+      "path": "dash/testing/browser.py",
+      "git_blob": "d86de118e6c5ee9df4f00e1c247627a34911b251",
+      "sha256": "f1762ce08bcd7d734ff31aec6c0d669e3c48496111c9cc2121b6a2131b9092cc"
+    },
+    {
+      "path": "dash/testing/plugin.py",
+      "git_blob": "1b917d7657b308a208a57ec72966131642b920a1",
+      "sha256": "9fec384b1cc83b9144ebfe42cb3023e4af7982b3e8bf73fef43f1f83eff5a7bd"
+    }
+  ],
+  "public_fixture": {
+    "path": "test_patch_update_before.py",
+    "sha256": "acf746f8cb4aa638520b7a7e1552edcd4f4d9b27877afc54168c0a3e5276c714",
+    "byte_identical_to": "../remote/test_patch_update_before.py"
+  },
+  "production_change": "One shallow dictionary copy at Patch.update before combining keyword arguments.",
+  "execution_state": "Not executed by implementation author; root-owned hosted gates and different-model review remain required.",
+  "files": [
+    {
+      "path": "dash/_patch.py",
+      "original_git_blob": "14719e01fe960f022ceb93e3645bfce29b1f8c24",
+      "original_sha256": "411dd77fc9f93858c8ffa56c87117f8aaf1166e908baee48c478a0b5fac08ea6",
+      "after_git_blob": "15eefa6214b6c0ce25970be49405c42d46cecfe2",
+      "after_sha256": "cf7b0c03d11e88bed7de599ab4cd1832e2daaccd250e1f5483e04ee2963b61a6",
+      "original_bytes": 5652,
+      "after_bytes": 5658
+    },
+    {
+      "path": "tests/unit/test_patch.py",
+      "original_git_blob": "c3298f64bf8cb8cda5d6df07ece433c95b8209ad",
+      "original_sha256": "742f54c41b31ae1e0e88682d99e13f4f7387e5082bbfe548bbc06d4c35423152",
+      "after_git_blob": "cc572ea2d346a3c91daf8f112e3b7e6e5cb7c93b",
+      "after_sha256": "802515a96d80340dcc68cef05dcd84abd006d8b0cb9448e374b99042ddf1de6a",
+      "original_bytes": 5286,
+      "after_bytes": 7135
+    },
+    {
+      "path": "tests/integration/test_patch.py",
+      "original_git_blob": "28cfd09f9b7cbb9cb1c02f580508a31d2681fa0a",
+      "original_sha256": "e592aec0fead2bca9e347858a116321e7c30c74694f99fe1c7525ec51569d0ec",
+      "after_git_blob": "da5ff9bf3c03c7f8827770246bfd789f1694c6c5",
+      "after_sha256": "646462fc13e8745af980a5f511d1cb4bca5aeff7e2054531f5e240fed180eed7",
+      "original_bytes": 23311,
+      "after_bytes": 25000
+    }
+  ]
+}
